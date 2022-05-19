@@ -42,19 +42,19 @@ function getCards(req, res) {
 function deletCard(req, res) {
   const { cardId } = req.params;
 
-  if (!cardId) {
-    res.status(400).send({ message: 'Карта не передана' });
+  if (cardId.length !== 24) {
+    res.status(400).send({ message: 'Некорректный айди карты' });
     return;
   }
 
-  Card.findByIdAndRemove({ _id: cardId })
+  Card.findByIdAndRemove({ _id: cardId }, { new: true })
     .orFail(new Error('NotCard'))
     .then(() => {
       res.status(200).send({ message: 'Карта удалена успешно' });
     })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        res.status(400).send({ message: 'Такой карты нет в базе данных' });
+        res.status(404).send({ message: 'Такой карты нет в базе данных' });
       } else {
         (
           res.status(500).send({ message: 'Произошла ошибка' })
