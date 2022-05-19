@@ -4,19 +4,17 @@ function createUser(req, res) {
   const { name, about, avatar } = req.body;
 
   if (!name || !about || !avatar) {
-    return res.status(400).send({ message: 'Переданы некоректные данные' });
+    res.status(400).send({ message: 'Переданы некоректные данные' });
+    return;
   }
 
   User.create({ name, about, avatar })
-    .then((user) => {
-      res.status(200).send(user);
-    })
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
         const fields = Object.keys(err.errors).join(', ');
         return res.status(400).send({ message: `поле(я) '${fields}' введены некорректно` });
       }
-
       return res.status(500).send({ message: 'Произошла ошибка' });
     });
 }
@@ -25,22 +23,18 @@ function getUser(req, res) {
   const { userId } = req.params;
 
   if (!userId) {
-    return res.status(400).send({ message: 'Пользователь не был передан' });
+    res.status(400).send({ message: 'Пользователь не был передан' });
+    return;
   }
 
   User.findById({ _id: userId })
     .orFail(new Error('NotValidUserId'))
-    .then((user) => {
-      res.status(200).send(user);
-    })
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
-        res.status(404).send({ message: 'Пользователя нет в базе данных' });
-      } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+        return res.status(404).send({ message: 'Пользователя нет в базе данных' });
       }
+      return res.status(500).send({ message: 'Произошла ошибка' });
     });
 }
 

@@ -6,7 +6,8 @@ function createCard(req, res) {
   const { name, link } = req.body;
 
   if (!name || !link || !owner) {
-    return res.status(400).send({ message: 'Переданы некоректные данные' });
+    res.status(400).send({ message: 'Переданы некоректные данные' });
+    return;
   }
 
   Card.create({ name, link, owner })
@@ -42,7 +43,8 @@ function deletCard(req, res) {
   const { cardId } = req.params;
 
   if (!cardId) {
-    return res.status(400).send({ message: 'Карта не передана' });
+    res.status(400).send({ message: 'Карта не передана' });
+    return;
   }
 
   Card.findByIdAndRemove({ _id: cardId })
@@ -65,7 +67,8 @@ function likeCard(req, res) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    return res.status(400).send({ message: 'Не верно передан айди карты' });
+    res.status(400).send({ message: 'Не верно передан айди карты' });
+    return;
   }
 
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: req.user._id } }, { new: true })
@@ -86,7 +89,8 @@ function dislikeCard(req, res) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    return res.status(400).send({ message: 'Не верно передан айди карты' });
+    res.status(400).send({ message: 'Не верно передан айди карты' });
+    return;
   }
 
   Card.findByIdAndUpdate(cardId, { $pull: { likes: req.user._id } }, { new: true })
