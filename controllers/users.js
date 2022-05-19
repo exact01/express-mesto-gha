@@ -49,9 +49,9 @@ function getUsers(req, res) {
 }
 
 function updateProfile(req, res) {
-  const { name, about, avatar } = req.body;
+  const { name, about } = req.body;
 
-  if (!name || !about || !avatar) {
+  if (!name || !about) {
     res.status(400).send({ message: 'Переданы некоректные данные' });
     return;
   }
@@ -59,7 +59,7 @@ function updateProfile(req, res) {
   User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true })
     .orFail(new Error('NotValidUserId'))
     .then((user) => {
-      res.status(200).send(user);
+      res.status(200).send({ newObject: user });
     })
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
