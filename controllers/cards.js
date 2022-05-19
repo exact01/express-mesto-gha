@@ -49,12 +49,12 @@ function deletCard(req, res) {
 
   Card.findByIdAndRemove({ _id: cardId })
     .orFail(new Error('NotCard'))
-    .then((card) => {
-      res.status(200).send(card);
+    .then(() => {
+      res.status(200).send({ message: 'Карта удалена успешно' });
     })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        res.status(404).send({ message: 'Такой карты нет в базе данных' });
+        res.status(400).send({ message: 'Такой карты нет в базе данных' });
       } else {
         (
           res.status(500).send({ message: 'Произошла ошибка' })

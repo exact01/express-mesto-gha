@@ -22,8 +22,8 @@ function createUser(req, res) {
 function getUser(req, res) {
   const { userId } = req.params;
 
-  if (!userId) {
-    res.status(400).send({ message: 'Пользователь не был передан' });
+  if (userId.length !== 24) {
+    res.status(400).send({ message: 'Некорректный айди' });
     return;
   }
 
@@ -49,6 +49,13 @@ function getUsers(req, res) {
 }
 
 function updateProfile(req, res) {
+  const { name, about, avatar } = req.body;
+
+  if (!name || !about || !avatar) {
+    res.status(400).send({ message: 'Переданы некоректные данные' });
+    return;
+  }
+
   User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true })
     .orFail(new Error('NotValidUserId'))
     .then((user) => {
@@ -57,6 +64,9 @@ function updateProfile(req, res) {
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
         res.status(404).send({ message: 'Пользователя нет в базе данных' });
+      }
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Переданы некоректные данные' });
       } else {
         (
           res.status(500).send({ message: 'Произошла ошибка' })
