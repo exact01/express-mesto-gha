@@ -40,28 +40,25 @@ function getCards(req, res) {
 }
 
 function deletCard(req, res) {
-  const { cardId } = req.params;
-
-  if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Некорректный айди карты' });
-    return;
-  }
-
-  Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        return res.status(404).send({ message: 'Запрашиваемая карточка не найдена' });
-      }
-      return res.send({ data: card });
+  const { id } = req.params;
+  Card.findById(id)
+    .orFail(() => {
+      const error = new Error('Нет карточки по заданному id');
+      error.statusCode = 404;
+      throw error;
     })
+    .then((card) => Card.deleteOne(card)
+      .then(() => res.send({ data: card })))
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({ message: 'id карточки некорректен' });
+        res.status(400).send({ message: 'Невалидный идентификатор карточки' });
+      } else if (err.statusCode === 404) {
+        res.status(404).send({ message: err.message });
+      } else {
+        res.status(500).send({ message: 'Произошла ошибка' });
       }
-
-      return res.status(500).send({ message: 'Произошла ошибка' });
     });
-}
+};
 
 function likeCard(req, res) {
   const { cardId } = req.params;
