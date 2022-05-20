@@ -47,19 +47,19 @@ function deletCard(req, res) {
     return;
   }
 
-  Card.findByIdAndRemove(cardId)
-    .orFail(new Error('NotCard'))
-    .then(() => {
-      res.status(200).send({ message: 'Карта удалена успешно' });
+  Card.findByIdAndRemove(req.params.cardId)
+    .then((card) => {
+      if (!card) {
+        return res.status(404).send({ message: 'Запрашиваемая карточка не найдена' });
+      }
+      return res.send({ data: card });
     })
     .catch((err) => {
-      if (err.message === 'NotCard') {
-        res.status(404).send({ message: 'Такой карты нет в базе данных' });
-      } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'id карточки некорректен' });
       }
+
+      return res.status(500).send({ message: 'Произошла ошибка' });
     });
 }
 
