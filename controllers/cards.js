@@ -32,7 +32,7 @@ function getCards(req, res) {
     })
     .catch((err) => {
       if (err.message === 'NotCards') {
-        res.status(404).send({ message: 'Карт нет в базе данных' });
+        res.status(404).send({ message: 'Карт в базе данных нет' });
       } else {
         res.status(500).send({ message: 'Произошла ошибка' });
       }
@@ -47,7 +47,7 @@ function deletCard(req, res) {
     return;
   }
 
-  Card.findByIdAndRemove({ _id: cardId }, { new: true })
+  Card.findByIdAndRemove({ _id: cardId })
     .orFail(new Error('NotCard'))
     .then(() => {
       res.status(200).send({ message: 'Карта удалена успешно' });
