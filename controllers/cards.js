@@ -47,7 +47,7 @@ function deletCard(req, res) {
     return;
   }
 
-  Card.findByIdAndRemove({ _id: cardId })
+  Card.findByIdAndRemove({ _id: cardId }, { new: true })
     .orFail(new Error('NotCard'))
     .then(() => {
       res.status(200).send({ message: 'Карта удалена успешно' });

@@ -24,6 +24,10 @@ app.use((req, res, next) => {
 app.use('/users', userRouter);
 app.use('/cards', cardRouter);
 
+app.use((req, res) => {
+  res.send({ message: 'Сударь или Сударыня Вы не туда попали' }, 404);
+});
+
 app.listen(PORT, () => {
   console.log('Server has been started');
 });
