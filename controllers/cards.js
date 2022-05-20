@@ -58,7 +58,7 @@ function deletCard(req, res) {
         res.status(500).send({ message: 'Произошла ошибка' });
       }
     });
-};
+}
 
 function likeCard(req, res) {
   const { cardId } = req.params;
