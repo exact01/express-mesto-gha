@@ -26,16 +26,11 @@ function createCard(req, res) {
 
 function getCards(req, res) {
   Card.find()
-    .orFail(new Error('NotCards'))
     .then((cards) => {
       res.status(200).send(cards);
     })
-    .catch((err) => {
-      if (err.message === 'NotCards') {
-        res.status(404).send({ message: 'Карт в базе данных нет' });
-      } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
-      }
+    .catch(() => {
+      res.status(500).send({ message: 'Произошла ошибка' });
     });
 }
 
@@ -43,7 +38,7 @@ function deletCard(req, res) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Некорректный айди карты' });
+    res.status(400).send({ message: 'Невалидный id' });
     return;
   }
 
@@ -54,12 +49,11 @@ function deletCard(req, res) {
     })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        res.status(404).send({ message: 'Такой карты нет в базе данных' });
-      } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+        return res.status(404).send({ message: 'Такой карты нет в базе данных' });
+      } if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Невалидный id' });
       }
+      return res.status(500).send({ message: 'Произошла ошибка' });
     });
 }
 
@@ -67,7 +61,7 @@ function likeCard(req, res) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Не верно передан айди карты' });
+    res.status(400).send({ message: 'Невалидный id' });
     return;
   }
 
@@ -77,10 +71,10 @@ function likeCard(req, res) {
     .catch((err) => {
       if (err.message === 'NotCard') {
         res.status(404).send({ message: 'Такой карты нет в базе данных' });
+      } else if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Невалидный id' });
       } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+        res.status(500).send({ message: 'Произошла ошибка' });
       }
     });
 }
@@ -99,10 +93,10 @@ function dislikeCard(req, res) {
     .catch((err) => {
       if (err.message === 'NotCard') {
         res.status(404).send({ message: 'Такой карты нет в базе данных' });
+      } else if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Невалидный id ' });
       } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+        res.status(500).send({ message: 'Произошла ошибка' });
       }
     });
 }
