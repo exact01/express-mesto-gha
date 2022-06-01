@@ -1,12 +1,14 @@
 const Card = require('../models/Сard');
+const NotFoundError = require('../errors/NotFoundError');
+const ValidationError = require('../errors/ValidationError');
 
-function createCard(req, res) {
+function createCard(req, res, next) {
   const owner = req.user._id;
 
   const { name, link } = req.body;
 
   if (!name || !link || !owner) {
-    res.status(400).send({ message: 'Переданы некоректные данные' });
+    next(new NotFoundError('Переданы некоректные данные'));
     return;
   }
 
@@ -17,51 +19,57 @@ function createCard(req, res) {
     .catch((err) => {
       if (err.name === 'ValidationError') {
         const fields = Object.keys(err.errors).join(', ');
-        return res.status(400).send({ message: `поле(я) '${fields}' введены некорректно` });
+        next(new ValidationError(`поле(я) '${fields}' введены некорректно`));
+        return;
       }
 
-      return res.status(500).send({ message: 'Произошла ошибка' });
+      next(err);
     });
 }
 
-function getCards(req, res) {
+function getCards(_req, res, next) {
   Card.find()
     .then((cards) => {
       res.status(200).send(cards);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Произошла ошибка' });
-    });
+    .catch(next);
 }
 
-function deletCard(req, res) {
+function deletCard(req, res, next) {
   const { cardId } = req.params;
+  const userId = req.user._id;
 
   if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Невалидный id' });
+    next(new NotFoundError('Невалидный id'));
     return;
   }
-
-  Card.findByIdAndRemove(cardId)
+  Card.findById(cardId)
     .orFail(new Error('NotCard'))
-    .then(() => {
-      res.status(200).send({ message: 'Карта удалена успешно' });
+    .then((card) => {
+      if (card.owner === userId) {
+        Card.findByIdAndRemove(cardId);
+        res.status(200).send({ message: 'Карта удалена успешно' });
+        return;
+      }
+      throw new NotFoundError('Доступ запрещен!');
     })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        return res.status(404).send({ message: 'Такой карты нет в базе данных' });
+        next(new NotFoundError('Такой карты нет в базе данных'));
+        return;
       } if (err.name === 'CastError') {
-        return res.status(400).send({ message: 'Невалидный id' });
+        next(new ValidationError('Невалидный id'));
+        return;
       }
-      return res.status(500).send({ message: 'Произошла ошибка' });
+      next(err);
     });
 }
 
-function likeCard(req, res) {
+function likeCard(req, res, next) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Невалидный id' });
+    next(new ValidationError('Невалидный id'));
     return;
   }
 
@@ -70,20 +78,20 @@ function likeCard(req, res) {
     .then((card) => { res.status(200).send(card); })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        res.status(404).send({ message: 'Такой карты нет в базе данных' });
+        next(new NotFoundError('Такой карты нет в базе данных'));
       } else if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Невалидный id' });
+        next(new ValidationError('Невалидный id'));
       } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
+        next(err);
       }
     });
 }
 
-function dislikeCard(req, res) {
+function dislikeCard(req, res, next) {
   const { cardId } = req.params;
 
   if (cardId.length !== 24) {
-    res.status(400).send({ message: 'Не верно передан айди карты' });
+    next(new ValidationError('Не верно передан айди карты'));
     return;
   }
 
@@ -92,11 +100,11 @@ function dislikeCard(req, res) {
     .then((card) => { res.status(200).send(card); })
     .catch((err) => {
       if (err.message === 'NotCard') {
-        res.status(404).send({ message: 'Такой карты нет в базе данных' });
+        next(new NotFoundError('Такой карты нет в базе данных'));
       } else if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Невалидный id ' });
+        next(new ValidationError('Невалидный id'));
       } else {
-        res.status(500).send({ message: 'Произошла ошибка' });
+        next(err);
       }
     });
 }

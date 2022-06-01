@@ -1,29 +1,73 @@
+const validator = require('validator');
+const bcrypt = require('bcrypt');
+const { generateToken } = require('../utils/jwt');
 const User = require('../models/User');
+const DublicateError = require('../errors/DublicateError');
+const NotFoundError = require('../errors/NotFoundError');
+const ValidationError = require('../errors/ValidationError');
 
-function createUser(req, res) {
-  const { name, about, avatar } = req.body;
+const MONGO_DUPLICATE_KEY_CODE = 11000;
+const saltRounds = 10;
 
-  if (!name || !about || !avatar) {
-    res.status(400).send({ message: 'Переданы некоректные данные' });
+function login(req, res, next) {
+  const { email, password } = req.body;
+  if (!email || !password || !validator.isEmail(email)) {
+    next(new NotFoundError('Переданы некоректные данные'));
+    return;
+  }
+  User.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        throw new ValidationError('Емейл или пароль неверный');
+      }
+      return {
+        isPasswordValid: bcrypt.compareSync(password, user.password),
+        user,
+      };
+    })
+    .then(({ isPasswordValid, user }) => {
+      if (!isPasswordValid) {
+        throw new ValidationError('Емейл или пароль неверный');
+      }
+      const jwToken = generateToken({ _id: user._id });
+      return res.status(200).send({ token: jwToken });
+    })
+    .catch(next);
+}
+
+function createUser(req, res, next) {
+  const {
+    email,
+    password,
+  } = req.body;
+
+  if (!email || !password || !validator.isEmail(email)) {
+    next(new ValidationError('Емейл или пароль неверный'));
     return;
   }
 
-  User.create({ name, about, avatar })
-    .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        const fields = Object.keys(err.errors).join(', ');
-        return res.status(400).send({ message: `поле(я) '${fields}' введены некорректно` });
-      }
-      return res.status(500).send({ message: 'Произошла ошибка' });
+  bcrypt.hash(password, saltRounds)
+    .then((hash) => {
+      User.create({ email, password: hash })
+        .then((user) => {
+          const jwToken = generateToken(user._id);
+          return res.status(200).send({ token: jwToken });
+        })
+        .catch((err) => {
+          if (err.code === MONGO_DUPLICATE_KEY_CODE) {
+            next(new DublicateError('Такой емейл уже занят'));
+            return;
+          }
+          next(err);
+        });
     });
 }
 
-function getUser(req, res) {
-  const { userId } = req.params;
+function getUserMe(req, res, next) {
+  const userId = req.user._id;
 
   if (userId.length !== 24) {
-    res.status(400).send({ message: 'Некорректный айди' });
+    next(new ValidationError('Некорректный айди'));
     return;
   }
 
@@ -32,30 +76,54 @@ function getUser(req, res) {
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
-        return res.status(404).send({ message: 'Пользователя нет в базе данных' });
+        next(new NotFoundError('Пользователя нет в базе данных'));
+        return;
       }
       if (err.name === 'CastError') {
-        return res.status(400).send({ message: 'Невалидный id ' });
+        next(new ValidationError('Невалидный id '));
+        return;
       }
-      return res.status(500).send({ message: 'Произошла ошибка' });
+      next(err);
     });
 }
 
-function getUsers(req, res) {
+function getUser(req, res, next) {
+  const { userId } = req.params;
+
+  if (userId.length !== 24) {
+    next(new ValidationError('Некорректный айди'));
+    return;
+  }
+
+  User.findById({ _id: userId })
+    .orFail(new Error('NotValidUserId'))
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err.message === 'NotValidUserId') {
+        next(new NotFoundError('Пользователя нет в базе данных'));
+        return;
+      }
+      if (err.name === 'CastError') {
+        next(new ValidationError('Невалидный id '));
+        return;
+      }
+      next(err);
+    });
+}
+
+function getUsers(_req, res, next) {
   User.find()
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch(() => {
-      res.status(500).send({ message: 'Произошла ошибка' });
-    });
+    .catch(next);
 }
 
-function updateProfile(req, res) {
+function updateProfile(req, res, next) {
   const { name, about } = req.body;
 
   if (!name || !about) {
-    res.status(400).send({ message: 'Переданы некоректные данные' });
+    next(new ValidationError('Переданы некоректные данные'));
     return;
   }
 
@@ -66,22 +134,18 @@ function updateProfile(req, res) {
     })
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
-        res.status(404).send({ message: 'Пользователя нет в базе данных' });
-      }
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Переданы некоректные данные' });
-      } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
-      }
+        next(new NotFoundError('Пользователя нет в базе данных'));
+      } else if (err.name === 'ValidationError') {
+        next(new ValidationError('Переданы некоректные данные'));
+      } else { next(err); }
     });
 }
 
-function updateAvatar(req, res) {
+function updateAvatar(req, res, next) {
   const { avatar } = req.body;
   if (!avatar) {
-    res.status(400).send({ message: 'Не передана ссылка' });
+    next(new ValidationError('Не передана ссылка'));
+    return;
   }
   User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
     .orFail(new Error('NotValidUserId'))
@@ -90,11 +154,9 @@ function updateAvatar(req, res) {
     })
     .catch((err) => {
       if (err.message === 'NotValidUserId') {
-        res.status(404).send({ message: 'Пользователя нет в базе данных' });
+        next(new NotFoundError('Пользователя нет в базе данных'));
       } else {
-        (
-          res.status(500).send({ message: 'Произошла ошибка' })
-        );
+        next(err);
       }
     });
 }
@@ -105,4 +167,6 @@ module.exports = {
   getUsers,
   updateProfile,
   updateAvatar,
+  login,
+  getUserMe,
 };
