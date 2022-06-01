@@ -5,6 +5,7 @@ const User = require('../models/User');
 const DublicateError = require('../errors/DublicateError');
 const NotFoundError = require('../errors/NotFoundError');
 const ValidationError = require('../errors/ValidationError');
+const AuthError = require('../errors/AuthError');
 
 const MONGO_DUPLICATE_KEY_CODE = 11000;
 const saltRounds = 10;
@@ -18,7 +19,7 @@ function login(req, res, next) {
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        throw new ValidationError('Емейл или пароль неверный');
+        throw new AuthError('Емейл или пароль неверный');
       }
       return {
         isPasswordValid: bcrypt.compareSync(password, user.password),

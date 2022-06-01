@@ -1,7 +1,6 @@
 const express = require('express');
 const { errors, celebrate, Joi } = require('celebrate');
 const mongoose = require('mongoose');
-require('dotenv').config();
 const { userRouter } = require('./routes/users');
 const { cardRouter } = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
@@ -22,13 +21,16 @@ app.post('/signin', celebrate({
   body: Joi.object().keys({
     email: Joi.string().max(300).required().email({ tlds: { allow: false } }),
     password: Joi.string().max(300).required(),
-  }).unknown(true),
+  }).unknown(false),
 }), login);
 app.post('/signup', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email({ tlds: { allow: false } }),
     password: Joi.string().required(),
-  }).unknown(true),
+    about: Joi.string().min(2).max(30),
+    name: Joi.string().min(2).max(30),
+    avatar: Joi.string().uri(),
+  }).unknown(false),
 }), createUser);
 
 app.use('/users', isAuthorized, userRouter);

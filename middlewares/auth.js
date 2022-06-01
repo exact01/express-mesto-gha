@@ -1,4 +1,4 @@
-const { JWT_SECRET_KEY } = process.env;
+const JWT_SECRET_KEY = '431241443231241';
 const jwt = require('jsonwebtoken');
 const AuthError = require('../errors/AuthError');
 
