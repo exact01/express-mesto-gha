@@ -1,6 +1,7 @@
 const Card = require('../models/Сard');
 const NotFoundError = require('../errors/NotFoundError');
 const ValidationError = require('../errors/ValidationError');
+const Forbidden = require('../errors/Forbidden');
 
 function createCard(req, res, next) {
   const owner = req.user._id;
@@ -51,7 +52,7 @@ function deletCard(req, res, next) {
         res.status(200).send({ message: 'Карта удалена успешно' });
         return;
       }
-      throw new NotFoundError('Доступ запрещен!');
+      throw new Forbidden('Доступ запрещен!');
     })
     .catch((err) => {
       if (err.message === 'NotCard') {

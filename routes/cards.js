@@ -7,8 +7,9 @@ const {
 
 router.post('/', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().required().max(300),
-    link: Joi.string().required().max(300).uri(),
+    name: Joi.string().required().min(2).max(30),
+    link: Joi.string().required().min(2).max(30)
+      .uri(),
   }).unknown(false),
 }), createCard);
 
