@@ -18,7 +18,6 @@ function createCard(req, res, next) {
         next(new ValidationError(`поле(я) '${fields}' введены некорректно`));
         return;
       }
-
       next(err);
     });
 }
@@ -37,7 +36,7 @@ function deletCard(req, res, next) {
   const userId = req.user._id;
 
   Card.findById(cardId)
-    .orFail(new NotFoundError('Пользователь с указанным id не существует'))
+    .orFail(() => new NotFoundError('Карты с указанным id не существует'))
     .then((card) => {
       if (card.owner.equals(userId)) {
         Card.findByIdAndRemove(cardId);
@@ -47,10 +46,7 @@ function deletCard(req, res, next) {
       throw new Forbidden('Доступ запрещен!');
     })
     .catch((err) => {
-      if (err.message === 'NotCard') {
-        next(new NotFoundError('Такой карты нет в базе данных'));
-        return;
-      } if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new ValidationError('Невалидный id'));
         return;
       }
@@ -62,16 +58,13 @@ function likeCard(req, res, next) {
   const { cardId } = req.params;
 
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: req.user._id } }, { new: true })
-    .orFail(new Error('NotCard'))
-    .then((card) => { res.status(200).send(card); })
+    .orFail(() => new NotFoundError('Карты с указанным id не существует'))
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err.message === 'NotCard') {
-        next(new NotFoundError('Такой карты нет в базе данных'));
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new ValidationError('Невалидный id'));
-      } else {
-        next(err);
       }
+      next(err);
     });
 }
 
@@ -79,14 +72,13 @@ function dislikeCard(req, res, next) {
   const { cardId } = req.params;
 
   Card.findByIdAndUpdate(cardId, { $pull: { likes: req.user._id } }, { new: true })
-    .orFail(new NotFoundError('Пользователь с указанным id не существует'))
+    .orFail(() => new NotFoundError('Карты с указанным id не существует'))
     .then((card) => { res.status(200).send(card); })
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new ValidationError('Невалидный id'));
-      } else {
-        next(err);
       }
+      next(err);
     });
 }
 

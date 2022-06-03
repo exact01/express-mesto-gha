@@ -46,7 +46,9 @@ function createUser(req, res, next) {
       User.create({
         email, password: hash, name, avatar, about,
       })
-        .then((user) => res.status(200).send(user))
+        .then((user) => res.status(200).send({
+          name: user.name, about: user.about, avatar: user.avatar, email: user.email, _id: user._id,
+        }))
         .catch((err) => {
           if (err.code === MONGO_DUPLICATE_KEY_CODE) {
             next(new DublicateError('Такой емейл уже занят'));
@@ -61,7 +63,7 @@ function getUserMe(req, res, next) {
   const userId = req.user._id;
 
   User.findById(userId)
-    .orFail(() => new NotFoundError('Пользователь с указанным id не существует'))
+    .orFail(() => new NotFoundError('Юзер с указанным id не существует'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === 'CastError') {
