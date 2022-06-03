@@ -8,11 +8,6 @@ function createCard(req, res, next) {
 
   const { name, link } = req.body;
 
-  if (!name || !link || !owner) {
-    next(new NotFoundError('Переданы некоректные данные'));
-    return;
-  }
-
   Card.create({ name, link, owner })
     .then((card) => {
       res.status(200).send(card);
@@ -38,16 +33,13 @@ function getCards(_req, res, next) {
 
 function deletCard(req, res, next) {
   const { cardId } = req.params;
+
   const userId = req.user._id;
 
-  if (cardId.length !== 24) {
-    next(new NotFoundError('Невалидный id'));
-    return;
-  }
   Card.findById(cardId)
-    .orFail(new Error('NotCard'))
+    .orFail(new NotFoundError('Пользователь с указанным id не существует'))
     .then((card) => {
-      if (card.owner === userId) {
+      if (card.owner.equals(userId)) {
         Card.findByIdAndRemove(cardId);
         res.status(200).send({ message: 'Карта удалена успешно' });
         return;
@@ -69,11 +61,6 @@ function deletCard(req, res, next) {
 function likeCard(req, res, next) {
   const { cardId } = req.params;
 
-  if (cardId.length !== 24) {
-    next(new ValidationError('Невалидный id'));
-    return;
-  }
-
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: req.user._id } }, { new: true })
     .orFail(new Error('NotCard'))
     .then((card) => { res.status(200).send(card); })
@@ -91,18 +78,11 @@ function likeCard(req, res, next) {
 function dislikeCard(req, res, next) {
   const { cardId } = req.params;
 
-  if (cardId.length !== 24) {
-    next(new ValidationError('Не верно передан айди карты'));
-    return;
-  }
-
   Card.findByIdAndUpdate(cardId, { $pull: { likes: req.user._id } }, { new: true })
-    .orFail(new Error('NotCard'))
+    .orFail(new NotFoundError('Пользователь с указанным id не существует'))
     .then((card) => { res.status(200).send(card); })
     .catch((err) => {
-      if (err.message === 'NotCard') {
-        next(new NotFoundError('Такой карты нет в базе данных'));
-      } else if (err.name === 'CastError') {
+      if (err.name === 'CastError') {
         next(new ValidationError('Невалидный id'));
       } else {
         next(err);

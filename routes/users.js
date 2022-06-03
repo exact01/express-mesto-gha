@@ -1,5 +1,6 @@
 const { errors, celebrate, Joi } = require('celebrate');
 const router = require('express').Router();
+const { validateUrl } = require('../utils/customValidator');
 
 const {
   getUser, getUsers, updateProfile, updateAvatar, getUserMe,
@@ -9,7 +10,7 @@ router.get('/me', getUserMe);
 
 router.get('/:userId', celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().required().max(24).min(24),
+    userId: Joi.string().required().length(24),
   }).unknown(false),
 }), getUser);
 
@@ -24,7 +25,7 @@ router.patch('/me', celebrate({
 
 router.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required().uri(),
+    avatar: Joi.string().required().custom(validateUrl, 'custom validate url'),
   }).unknown(false),
 }), updateAvatar);
 

@@ -6,6 +6,7 @@ const { cardRouter } = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
 const NotFoundError = require('./errors/NotFoundError');
+const { validateUrl } = require('./utils/customValidator');
 
 const { PORT = 3000 } = process.env;
 
@@ -19,8 +20,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().max(300).required().email({ tlds: { allow: false } }),
-    password: Joi.string().max(300).required(),
+    email: Joi.string().required().email({ tlds: { allow: false } }),
+    password: Joi.string().required(),
   }).unknown(false),
 }), login);
 app.post('/signup', celebrate({
@@ -29,14 +30,14 @@ app.post('/signup', celebrate({
     password: Joi.string().required(),
     about: Joi.string().min(2).max(30),
     name: Joi.string().min(2).max(30),
-    avatar: Joi.string().uri(),
+    avatar: Joi.string().custom(validateUrl, 'custom validate url'),
   }).unknown(false),
 }), createUser);
 
 app.use('/users', isAuthorized, userRouter);
 app.use('/cards', isAuthorized, cardRouter);
 
-app.use((_req, _res, next) => next(new NotFoundError('Страница не найдена')));
+app.use(isAuthorized, (_req, _res, next) => next(new NotFoundError('Страница не найдена')));
 
 app.use(errors());
 
