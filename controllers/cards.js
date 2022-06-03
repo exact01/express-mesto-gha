@@ -39,8 +39,9 @@ function deletCard(req, res, next) {
     .orFail(() => new NotFoundError('Карты с указанным id не существует'))
     .then((card) => {
       if (card.owner.equals(userId)) {
-        Card.findByIdAndRemove(cardId);
-        res.status(200).send({ message: 'Карта удалена успешно' });
+        Card.findByIdAndRemove(cardId)
+          .then(() => res.status(200).send({ message: 'Карта удалена успешно' }))
+          .catch(next);
         return;
       }
       throw new Forbidden('Доступ запрещен!');
