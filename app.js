@@ -7,12 +7,11 @@ const { createUser, login } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
 const NotFoundError = require('./errors/NotFoundError');
 const { validateUrl } = require('./utils/customValidator');
-const corsMiddleware = require('./utils/cors');
+const cors = require('cors');
 
 const { PORT = 3000 } = process.env;
-
 const app = express();
-app.use(corsMiddleware);
+app.use(cors({ origin: 'http://cohort37.nomoredomains.xyz' }));
 app.use(express.json());
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
