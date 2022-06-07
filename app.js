@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { errors, celebrate, Joi } = require('celebrate');
 const mongoose = require('mongoose');
@@ -15,7 +14,6 @@ const { PORT = 3000 } = process.env;
 const app = express();
 app.use(corsMiddleware);
 app.use(express.json());
-
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
