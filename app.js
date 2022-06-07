@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { errors, celebrate, Joi } = require('celebrate');
 const mongoose = require('mongoose');
@@ -7,12 +8,14 @@ const { createUser, login } = require('./controllers/users');
 const { isAuthorized } = require('./middlewares/auth');
 const NotFoundError = require('./errors/NotFoundError');
 const { validateUrl } = require('./utils/customValidator');
+const corsMiddleware = require('./utils/cors');
 
 const { PORT = 3000 } = process.env;
 
 const app = express();
-
+app.use(corsMiddleware);
 app.use(express.json());
+
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
